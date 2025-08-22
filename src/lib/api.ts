@@ -149,7 +149,7 @@ export interface ApiResponse<T> {
 }
 
 // API Configuration
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://luxe-staycations-api.onrender.com';
 const API_TIMEOUT = 10000; // 10 seconds
 
 // Helper function to handle API responses
