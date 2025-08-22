@@ -1,0 +1,520 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CUSTOMER
+  HOST
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  REFUNDED
+  FAILED
+}
+
+enum VillaStatus {
+  PENDING_REVIEW
+  VERIFIED
+  REJECTED
+  SUSPENDED
+  OFFLINE
+}
+
+enum TransactionType {
+  BOOKING_PAYMENT
+  HOST_PAYOUT
+  REFUND
+  SERVICE_FEE
+  CLEANING_FEE
+  SECURITY_DEPOSIT
+  COMMISSION
+  GST
+  TDS
+  LOYALTY_EARNED
+  LOYALTY_REDEEMED
+  COUPON_DISCOUNT
+}
+
+enum SupportTicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum SupportTicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum PropertyTag {
+  FAST_SELLER
+  HIGH_DEMAND
+  RECENTLY_LISTED
+  LUXE_PREMIER
+  TRENDING
+  BEST_VALUE
+}
+
+enum CommissionType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+enum CouponType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+enum CouponScope {
+  SITE_WIDE
+  PROPERTY_SPECIFIC
+  FIRST_TIME_ONLY
+}
+
+enum CommunicationType {
+  EMAIL
+  WHATSAPP
+  SMS
+  IN_APP
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  APPROVE
+  REJECT
+  SUSPEND
+  ACTIVATE
+  PAYOUT
+  REFUND
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  passwordHash  String
+  role          Role      @default(CUSTOMER)
+  image         String?
+  phone         String?
+  isVerified    Boolean   @default(false)
+  isSuspended   Boolean   @default(false)
+  totalSpent    Int       @default(0) // in cents
+  totalEarnings Int       @default(0) // in cents (for hosts)
+  payoutBalance Int       @default(0) // in cents (for hosts)
+  
+  // Phase 2: Financial & Tax Info
+  gstin         String?   // GST Identification Number
+  panNumber     String?   // PAN Number for TDS
+  bankDetails   String?   // JSON string with bank account details
+  
+  // Phase 2: Loyalty Program
+  luxeJewels    Int       @default(0)
+  loyaltyTier   String    @default("BRONZE") // BRONZE, SILVER, GOLD, PLATINUM
+  
+  // Phase 2: Marketing & Communication
+  whatsappOptIn Boolean   @default(false)
+  marketingOptIn Boolean  @default(true)
+  referralCode  String?   @unique
+  referredBy    String?   // User ID who referred this user
+
+  villas        Villa[]
+  bookings      Booking[]
+  transactions  Transaction[]
+  supportTickets SupportTicket[]
+  adminActions  AdminAction[]
+  
+  // Phase 2: New Relations
+  commissionAgreements CommissionAgreement[]
+  luxeJewelTransactions LuxeJewelTransaction[]
+  couponRedemptions CouponRedemption[]
+  communications Communication[]
+  auditLogs     AuditLog[]
+  referrals     User[]    @relation("UserReferrals")
+  referredByUser User?    @relation("UserReferrals", fields: [referredBy], references: [id])
+
+  accounts      Account[]
+  sessions      Session[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Villa {
+  id                    String      @id @default(cuid())
+  title                 String
+  description           String
+  city                  String
+  country               String
+  address               String
+  pricePerNightInCents  Int
+  cleaningFeeInCents    Int         @default(0)
+  securityDepositInCents Int        @default(0)
+  bedrooms              Int         @default(1)
+  bathrooms             Int         @default(1)
+  maxGuests             Int         @default(2)
+  imageUrl              String?
+  vrTourUrl             String?
+  isLuxeCertified       Boolean     @default(false)
+  status                VillaStatus @default(PENDING_REVIEW)
+  isVisible             Boolean     @default(true)
+  category              String?     // Beachfront, Mountain, Heritage, etc.
+  amenities             String?     // JSON string of amenities
+  weekendPricingRules   String?     // JSON string of pricing rules
+  
+  // Phase 2: Performance Metrics
+  occupancyRate         Float       @default(0) // Percentage
+  averageRating         Float       @default(0)
+  totalBookings         Int         @default(0)
+  totalRevenue          Int         @default(0) // in cents
+  lastBookedAt          DateTime?
+  
+  // Phase 2: Property Tags (stored as JSON string)
+  tags                  String?     // JSON array of PropertyTag values
+  
+  // Phase 2: Social Media
+  socialMediaLinks      String?     // JSON string with social media URLs
+  featuredImages        String?     // JSON array of image URLs
+
+  host        User      @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  hostId      String
+
+  bookings    Booking[]
+  blocks      Block[]
+  transactions Transaction[]
+  
+  // Phase 2: New Relations
+  commissionAgreements CommissionAgreement[]
+  couponRedemptions CouponRedemption[]
+  auditLogs   AuditLog[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Booking {
+  id                  String         @id @default(cuid())
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  villa       Villa   @relation(fields: [villaId], references: [id], onDelete: Cascade)
+  villaId     String
+
+  startDate   DateTime
+  endDate     DateTime
+  totalPriceInCents Int
+  status      BookingStatus @default(PENDING)
+  paymentStatus PaymentStatus @default(PENDING)
+  specialRequests String?
+  conciergeAddons String? // JSON string of addons
+  
+  // Phase 2: Financial Breakdown
+  basePriceInCents     Int
+  commissionInCents    Int         @default(0)
+  gstAmountInCents     Int         @default(0)
+  tdsAmountInCents     Int         @default(0)
+  discountInCents      Int         @default(0)
+  finalPayoutInCents   Int         @default(0)
+  
+  // Phase 2: Guest Info
+  guestCount           Int
+  guestNames           String?     // JSON array of guest names
+  guestPhone           String?
+  guestEmail           String?
+  
+  // Phase 2: Marketing & Tracking
+  utmSource            String?
+  utmMedium            String?
+  utmCampaign          String?
+  referralCode         String?
+  couponCode           String?
+
+  transactions Transaction[]
+  
+  // Phase 2: New Relations
+  communications Communication[]
+  auditLogs     AuditLog[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([villaId, startDate])
+  @@index([userId])
+}
+
+model Transaction {
+  id            String          @id @default(cuid())
+  type          TransactionType
+  amountInCents Int
+  status        PaymentStatus   @default(PENDING)
+  description   String?
+  transactionId String? // External payment processor ID
+  
+  user          User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId        String?
+  villa         Villa?          @relation(fields: [villaId], references: [id], onDelete: SetNull)
+  villaId       String?
+  booking       Booking?        @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  bookingId     String?
+  
+  // Phase 2: Tax & Compliance
+  gstAmountInCents     Int         @default(0)
+  tdsAmountInCents     Int         @default(0)
+  invoiceNumber        String?
+  invoiceUrl           String?
+
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([userId])
+  @@index([villaId])
+  @@index([bookingId])
+}
+
+// Phase 2: Commission Agreements
+model CommissionAgreement {
+  id              String          @id @default(cuid())
+  commissionType  CommissionType
+  commissionRate  Float           // Percentage or fixed amount
+  effectiveDate   DateTime
+  endDate         DateTime?
+  isActive        Boolean         @default(true)
+  
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId          String
+  villa           Villa?          @relation(fields: [villaId], references: [id], onDelete: Cascade)
+  villaId         String?
+  
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([userId])
+  @@index([villaId])
+}
+
+// Phase 2: Loyalty Program
+model LuxeJewelTransaction {
+  id            String    @id @default(cuid())
+  jewels        Int       // Positive for earned, negative for redeemed
+  description   String
+  
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String
+  
+  createdAt     DateTime  @default(now())
+
+  @@index([userId])
+}
+
+// Phase 2: Coupon System
+model Coupon {
+  id              String        @id @default(cuid())
+  code            String        @unique
+  name            String
+  description     String?
+  couponType      CouponType
+  discountValue   Float         // Percentage or fixed amount
+  scope           CouponScope
+  validFrom       DateTime
+  validUntil      DateTime
+  maxUses         Int?
+  maxUsesPerUser  Int           @default(1)
+  minBookingValue Int?          // Minimum booking value in cents
+  applicableVillas String?      // JSON array of villa IDs for property-specific coupons
+  
+  isActive        Boolean       @default(true)
+  totalUses       Int           @default(0)
+  totalDiscount   Int           @default(0) // Total discount given in cents
+  
+  redemptions     CouponRedemption[]
+  auditLogs       AuditLog[]
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model CouponRedemption {
+  id            String    @id @default(cuid())
+  discountAmount Int      // Amount saved in cents
+  
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String
+  villa         Villa?    @relation(fields: [villaId], references: [id], onDelete: SetNull)
+  villaId       String?
+  coupon        Coupon    @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  couponId      String
+  
+  createdAt     DateTime  @default(now())
+
+  @@index([userId])
+  @@index([villaId])
+  @@index([couponId])
+}
+
+// Phase 2: Communication System
+model Communication {
+  id              String            @id @default(cuid())
+  type            CommunicationType
+  subject         String?
+  content         String
+  status          String            @default("SENT") // SENT, DELIVERED, READ, FAILED
+  externalId      String?           // External service ID (WhatsApp, Email service)
+  
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId          String
+  booking         Booking?          @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  bookingId       String?
+  
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([userId])
+  @@index([bookingId])
+  @@index([type])
+}
+
+// Phase 2: Audit Logging
+model AuditLog {
+  id          String      @id @default(cuid())
+  action      AuditAction
+  targetType  String      // "USER", "VILLA", "BOOKING", "COUPON", etc.
+  targetId    String      // ID of the target object
+  oldValues   String?     // JSON string of old values
+  newValues   String?     // JSON string of new values
+  ipAddress   String?
+  userAgent   String?
+  
+  user        User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId      String?
+  villa       Villa?      @relation(fields: [villaId], references: [id], onDelete: SetNull)
+  villaId     String?
+  booking     Booking?    @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  bookingId   String?
+  coupon      Coupon?     @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  couponId    String?
+  
+  createdAt   DateTime    @default(now())
+
+  @@index([userId])
+  @@index([targetType, targetId])
+  @@index([action])
+}
+
+model Block {
+  id        String   @id @default(cuid())
+  villa     Villa    @relation(fields: [villaId], references: [id], onDelete: Cascade)
+  villaId   String
+  startDate DateTime
+  endDate   DateTime
+  reason    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([villaId, startDate])
+}
+
+model SupportTicket {
+  id          String                @id @default(cuid())
+  title       String
+  description String
+  status      SupportTicketStatus   @default(OPEN)
+  priority    SupportTicketPriority @default(MEDIUM)
+  
+  user        User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+model AdminAction {
+  id          String   @id @default(cuid())
+  action      String   // e.g., "VERIFIED_VILLA", "SUSPENDED_USER", "PROCESSED_PAYOUT"
+  details     String   // JSON string with action details
+  targetType  String   // "VILLA", "USER", "BOOKING", etc.
+  targetId    String   // ID of the target object
+  
+  admin       User     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  adminId     String
+
+  createdAt   DateTime @default(now())
+
+  @@index([adminId])
+  @@index([targetType, targetId])
+}
+
+model SiteSettings {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  description String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// NextAuth models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
