@@ -87,7 +87,7 @@ export default function CheckoutPage() {
       phone: '',
       specialRequests: '',
     },
-    selectedServices: [],
+    selectedServices: [] as number[],
     paymentMethod: 'card',
     termsAccepted: false,
   });
