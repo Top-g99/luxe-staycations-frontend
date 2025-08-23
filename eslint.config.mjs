@@ -11,24 +11,29 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
-  {
-    rules: {
-      "@typescript-eslint/no-unused-vars": "warn",
-      "react/no-unescaped-entities": "off",
-      "@next/next/no-html-link-for-pages": "warn",
-      "react/jsx-no-comment-textnodes": "warn",
+    ...compat.extends("next/core-web-vitals", "next/typescript"),
+    {
+        rules: {
+            "@typescript-eslint/no-unused-vars": "warn",
+            "react/no-unescaped-entities": "off",
+            "@next/next/no-html-link-for-pages": "warn",
+            "react/jsx-no-comment-textnodes": "warn",
+            "@typescript-eslint/no-require-imports": "warn",
+        },
+        ignores: [
+            "node_modules/**",
+            ".next/**",
+            "out/**",
+            "build/**",
+            "next-env.d.ts",
+            "src/generated/**",
+            "**/*.wasm.js",
+            "**/generated/**",
+            "**/prisma/**",
+            "**/*.generated.*",
+            "**/*.wasm.*",
+        ],
     },
-    ignores: [
-      "node_modules/**",
-      ".next/**",
-      "out/**",
-      "build/**",
-      "next-env.d.ts",
-      "src/generated/**",
-      "**/*.wasm.js",
-    ],
-  },
 ];
 
 export default eslintConfig;

@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+.next/
+out/
+build/
+
+# Generated files
+src/generated/
+**/generated/
+**/prisma/
+**/*.wasm.*
+**/*.generated.*
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# TypeScript
+next-env.d.ts
+*.d.ts
+
+# Build outputs
+dist/
+coverage/
