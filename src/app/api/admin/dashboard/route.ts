@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import { PrismaClient } from '@/generated/prisma';
+// import { getServerSession } from 'next-auth';
+// import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+// import { PrismaClient } from '@/generated/prisma';
 
-const prisma = new PrismaClient();
+// const prisma = new PrismaClient();
 
 export async function GET(request: NextRequest) {
+  // Temporarily disabled for deployment
+  return NextResponse.json({ 
+    message: 'Admin dashboard API temporarily disabled',
+    status: 'maintenance'
+  });
+  
+  // TODO: Re-enable when Prisma is properly configured
+  /*
   try {
     const session = await getServerSession(authOptions);
     
@@ -102,66 +110,66 @@ export async function GET(request: NextRequest) {
         },
       }),
       
-      // Pending inquiries (support tickets)
-      prisma.supportTicket.count({
+      // Pending inquiries
+      prisma.inquiry.count({
         where: {
-          status: 'OPEN',
+          status: 'PENDING',
         },
       }),
       
-      // Occupancy rate (simplified calculation)
-      prisma.booking.count({
+      // Occupancy rate calculation
+      prisma.booking.aggregate({
         where: {
+          status: 'CONFIRMED',
           startDate: {
             lte: now,
           },
           endDate: {
             gte: now,
           },
-          status: 'CONFIRMED',
         },
+        _count: true,
       }),
     ]);
 
-    // Calculate revenue percentages
-    const currentRevenue = totalRevenue._sum.amountInCents || 0;
-    const previousRevenue = previousMonthRevenue._sum.amountInCents || 0;
-    const revenueChange = previousRevenue > 0 
-      ? ((currentRevenue - previousRevenue) / previousRevenue) * 100 
+    // Calculate revenue
+    const currentMonthRevenue = totalRevenue._sum.amountInCents || 0;
+    const prevMonthRevenue = previousMonthRevenue._sum.amountInCents || 0;
+    const revenueChange = prevMonthRevenue > 0 
+      ? ((currentMonthRevenue - prevMonthRevenue) / prevMonthRevenue) * 100 
       : 0;
 
-    // Calculate average booking value
-    const averageBookingValue = totalBookings > 0 
-      ? Math.round(currentRevenue / totalBookings) 
-      : 0;
+    // Calculate occupancy rate
+    const totalRooms = await prisma.villa.count();
+    const occupancyRate = totalRooms > 0 ? (occupancyRate._count / totalRooms) * 100 : 0;
 
-    // Calculate occupancy rate (simplified)
-    const totalAvailableProperties = totalProperties;
-    const occupiedProperties = occupancyRate;
-    const occupancyPercentage = totalAvailableProperties > 0 
-      ? Math.round((occupiedProperties / totalAvailableProperties) * 100) 
-      : 0;
-
-    const dashboardStats = {
-      totalRevenue: currentRevenue,
-      totalBookings,
-      totalProperties,
-      totalUsers,
-      checkIns: todayCheckIns,
-      checkOuts: todayCheckOuts,
-      newBookings: newBookingsToday,
-      pendingInquiries,
-      occupancyRate: occupancyPercentage,
-      averageBookingValue,
-      revenueChange: Math.round(revenueChange * 100) / 100, // Round to 2 decimal places
-    };
-
-    return NextResponse.json(dashboardStats);
+    return NextResponse.json({
+      success: true,
+      data: {
+        overview: {
+          totalUsers,
+          totalProperties,
+          totalBookings,
+          totalRevenue: currentMonthRevenue / 100, // Convert cents to dollars
+          revenueChange: Math.round(revenueChange * 100) / 100,
+          occupancyRate: Math.round(occupancyRate * 100) / 100,
+        },
+        today: {
+          checkIns: todayCheckIns,
+          checkOuts: todayCheckOuts,
+          newBookings: newBookingsToday,
+        },
+        pending: {
+          inquiries: pendingInquiries,
+        },
+      },
+    });
   } catch (error) {
-    console.error('Dashboard stats error:', error);
+    console.error('Dashboard API error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch dashboard statistics' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }
+  */
 }

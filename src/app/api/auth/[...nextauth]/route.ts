@@ -1,13 +1,13 @@
 import NextAuth from "next-auth";
-import { PrismaAdapter } from "@auth/prisma-adapter";
-import { PrismaClient } from "@/generated/prisma";
+// import { PrismaAdapter } from "@auth/prisma-adapter";
+// import { PrismaClient } from "@/generated/prisma";
 import CredentialsProvider from "next-auth/providers/credentials";
-import bcrypt from "bcryptjs";
+// import bcrypt from "bcryptjs";
 
-const prisma = new PrismaClient();
+// const prisma = new PrismaClient();
 
 export const authOptions = {
-  adapter: PrismaAdapter(prisma),
+  // adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
       name: "credentials",
@@ -16,6 +16,12 @@ export const authOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
+        // Temporarily disabled for deployment
+        console.log('NextAuth temporarily disabled');
+        return null;
+        
+        // TODO: Re-enable when Prisma is properly configured
+        /*
         console.log('NextAuth authorize called with:', { email: credentials?.email, hasPassword: !!credentials?.password });
         
         if (!credentials?.email || !credentials?.password) {
@@ -45,6 +51,7 @@ export const authOptions = {
           name: user.name,
           role: user.role,
         };
+        */
       }
     })
   ],
