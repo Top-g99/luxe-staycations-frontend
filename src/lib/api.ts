@@ -49,7 +49,7 @@ export interface PropertySearchResponse {
   };
   search?: {
     query?: string;
-    filters: any;
+    filters: Record<string, unknown>;
     sortBy?: string;
     sortOrder?: string;
   };
@@ -145,12 +145,11 @@ export interface ApiResponse<T> {
   data: T;
   message?: string;
   error?: string;
-  details?: any;
+  details?: Record<string, unknown>;
 }
 
 // API Configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://luxe-staycations-api.onrender.com';
-const API_TIMEOUT = 10000; // 10 seconds
 
 // Helper function to handle API responses
 async function handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
