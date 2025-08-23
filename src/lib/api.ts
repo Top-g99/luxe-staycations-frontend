@@ -398,7 +398,13 @@ export const usersApi = {
   // Get user's loyalty information
   async getLoyaltyInfo(): Promise<ApiResponse<{
     totalJewels: number;
-    recentTransactions: any[];
+    recentTransactions: Array<{
+      id: string;
+      type: string;
+      amount: number;
+      date: string;
+      description?: string;
+    }>;
     loyaltyTier: string;
   }>> {
     return apiRequest('/users/loyalty', {

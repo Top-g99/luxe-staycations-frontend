@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Property, PropertySearchParams, PropertySearchResponse, ApiResponse, Booking, Review, User, Coupon } from '@/lib/api';
+import { Property, PropertySearchParams, PropertySearchResponse, Booking, Review, User, Coupon } from '@/lib/api';
 
 // Base API state interface
 export interface ApiState<T> {
