@@ -174,7 +174,6 @@ async function apiRequest<T>(
       'Content-Type': 'application/json',
       ...options.headers,
     },
-    timeout: API_TIMEOUT,
   };
 
   const finalOptions = { ...defaultOptions, ...options };
@@ -208,7 +207,7 @@ function getAuthHeaders(): HeadersInit {
 // Properties API
 export const propertiesApi = {
   // Get all properties with optional filtering
-  async getProperties(params: PropertySearchParams = {}): Promise<PropertySearchResponse> {
+  async getProperties(params: PropertySearchParams = {}): Promise<ApiResponse<PropertySearchResponse>> {
     const searchParams = new URLSearchParams();
     
     Object.entries(params).forEach(([key, value]) => {
@@ -228,7 +227,7 @@ export const propertiesApi = {
   },
 
   // Search properties with advanced filters
-  async searchProperties(params: PropertySearchParams = {}): Promise<PropertySearchResponse> {
+  async searchProperties(params: PropertySearchParams = {}): Promise<ApiResponse<PropertySearchResponse>> {
     const searchParams = new URLSearchParams();
     
     Object.entries(params).forEach(([key, value]) => {
