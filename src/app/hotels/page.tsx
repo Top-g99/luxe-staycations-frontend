@@ -1,188 +1,301 @@
-'use client';
-import React, { useState } from "react";
-import Link from "next/link";
+"use client";
 
-export default function VillasPage() {
-  const [destination, setDestination] = useState("Thailand");
-  const [guests, setGuests] = useState("2 Guests, 1 Room");
+import { useState, useEffect } from 'react';
+import { 
+  Box, 
+  Container, 
+  Typography, 
+  Grid, 
+  Card, 
+  CardContent, 
+  CardMedia, 
+  Button,
+  Rating,
+  Skeleton,
+  TextField,
+  InputAdornment,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
+} from '@mui/material';
+import { Search, LocationOn, People, Bed, Shower, Star } from '@mui/icons-material';
+import { useProperties } from '@/hooks/useApi';
 
-  const villas = [
-    {
-      place: "Singapore",
-      name: "Marina Bay Sands",
-      reviews: 3260,
-      description: "Marina Bay Sands Singapore's iconic villa featuring breathtaking views, premium amenities, and the famous infinity pool overlooking.",
-      img: "https://images.unsplash.com/photo-1501117716987-c8e2a3a67a3e?q=80&w=1200&auto=format&fit=crop",
-      slug: "marina-bay-sands"
-    },
-    {
-      place: "Maldives",
-      name: "Emerald Bay Resort",
-      reviews: 2169,
-      description: "Nestled along pristine shores, Emerald Bay Resort offers a serene escape with luxurious amenities, breathtaking views.",
-      img: "https://images.unsplash.com/photo-1519821172141-b5d8a4d3eace?q=80&w=1200&auto=format&fit=crop",
-      slug: "emerald-bay-resort"
-    },
-    {
-      place: "Bali",
-      name: "Atalaya Villas Nusa Penida",
-      reviews: 1830,
-      description: "Experience island luxury at Atalaya Villas Nusa Penida a serene escape featuring elegant villas, breathtaking ocean views.",
-      img: "https://images.unsplash.com/photo-1540541338287-41700207dee6?q=80&w=1200&auto=format&fit=crop",
-      slug: "atalaya-villas-nusa-penida"
-    },
-    {
-      place: "Bangkok",
-      name: "Royal Orchid Suites",
-      reviews: 1830,
-      description: "Experience modern elegance and exceptional comfort at Royal Orchid Suites your perfect retreat for both business and leisure stays.",
-      img: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=1200&auto=format&fit=crop",
-      slug: "royal-orchid-suites"
-    },
-    {
-      place: "New York",
-      name: "The Peninsula",
-      reviews: 2209,
-      description: "Experience timeless luxury at The Peninsula, where world-class service, elegant rooms, and breathtaking city views come together.",
-      img: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?q=80&w=1200&auto=format&fit=crop",
-      slug: "the-peninsula"
-    },
-    {
-      place: "Zurich",
-      name: "The Dolder Grand",
-      reviews: 2930,
-      description: "Experience timeless luxury at The Dolder Grand, a five-star villa in Zurich offering breathtaking views, world-class amenities.",
-      img: "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?q=80&w=1200&auto=format&fit=crop",
-      slug: "the-dolder-grand"
-    },
-    {
-      place: "Dubai",
-      name: "Burj Al Arab",
-      reviews: 2930,
-      description: "Experience the pinnacle of luxury at Burj Al Arab Dubai's iconic sail-shaped villa offering world-class service, lavish suites, and breathtaking views.",
-      img: "https://images.unsplash.com/photo-1491553895911-0055eca6402d?q=80&w=1200&auto=format&fit=crop",
-      slug: "burj-al-arab"
-    },
-    {
-      place: "Tokyo",
-      name: "The Luxe Retreat",
-      reviews: 1570,
-      description: "Experience unmatched comfort and elegance at The Velvet Stay where modern luxury meets warm hospitality for a truly memorable escape.",
-      img: "https://images.unsplash.com/photo-1500462918059-b1a0cb512f1d?q=80&w=1200&auto=format&fit=crop",
-      slug: "the-luxe-retreat"
-    },
-    {
-      place: "Sydney",
-      name: "The Velvet Stay",
-      reviews: 1326,
-      description: "Experience comfort and elegance at Moonlight Residency your perfect retreat with modern amenities and a peaceful atmosphere.",
-      img: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?q=80&w=1200&auto=format&fit=crop",
-      slug: "the-velvet-stay"
-    },
-  ];
+interface Hotel {
+  id: string;
+  title: string;
+  description: string;
+  location: string;
+  price_per_night: number;
+  image_urls: string[];
+  category: string;
+  max_guests: number;
+  bedrooms: number;
+  bathrooms: number;
+  averageRating: number;
+  reviewCount: number;
+}
+
+export default function HotelsPage() {
+  const { getProperties, data, loading, error } = useProperties();
+  const [hotels, setHotels] = useState<Hotel[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [location, setLocation] = useState('');
+  const [guests, setGuests] = useState('');
+  const [sortBy, setSortBy] = useState('price');
+
+  useEffect(() => {
+    getProperties();
+  }, [getProperties]);
+
+  useEffect(() => {
+    if (data?.data) {
+      // Filter for hotels only and transform data
+      const transformedHotels: Hotel[] = data.data
+        .filter(property => property.category === 'hotel')
+        .map(property => ({
+          id: property.id,
+          title: property.title,
+          description: property.description,
+          location: property.location,
+          price_per_night: property.price_per_night,
+          image_urls: property.image_urls,
+          category: property.category,
+          max_guests: property.max_guests,
+          bedrooms: property.bedrooms,
+          bathrooms: property.bathrooms,
+          averageRating: property.averageRating || 0,
+          reviewCount: property.reviewCount || 0
+        }));
+      setHotels(transformedHotels);
+    }
+  }, [data]);
+
+  const filteredHotels = hotels.filter(hotel => {
+    const matchesSearch = hotel.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         hotel.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesLocation = !location || hotel.location.toLowerCase().includes(location.toLowerCase());
+    const matchesGuests = !guests || hotel.max_guests >= parseInt(guests);
+    return matchesSearch && matchesLocation && matchesGuests;
+  });
+
+  const sortedHotels = [...filteredHotels].sort((a, b) => {
+    switch (sortBy) {
+      case 'price':
+        return a.price_per_night - b.price_per_night;
+      case 'rating':
+        return b.averageRating - a.averageRating;
+      case 'reviews':
+        return b.reviewCount - a.reviewCount;
+      default:
+        return 0;
+    }
+  });
+
+  if (loading) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Typography variant="h3" component="h1" sx={{ mb: 4, textAlign: 'center' }}>
+          Luxury Hotels
+        </Typography>
+        <Grid container spacing={4}>
+          {[1, 2, 3, 4, 5, 6].map((item) => (
+            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={item}>
+              <Card>
+                <Skeleton variant="rectangular" height={200} />
+                <CardContent>
+                  <Skeleton variant="text" height={32} />
+                  <Skeleton variant="text" height={24} />
+                  <Skeleton variant="text" height={20} />
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4, textAlign: 'center' }}>
+        <Typography variant="h4" color="error" sx={{ mb: 2 }}>
+          Error loading hotels
+        </Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+          {error}
+        </Typography>
+        <Button variant="contained" onClick={() => getProperties()}>
+          Try Again
+        </Button>
+      </Container>
+    );
+  }
 
   return (
-    <main className="min-h-screen bg-[#ffffff] text-[#171717]">
-      {/* Hero */}
-      <section
-        className="relative isolate overflow-hidden -mt-20 pt-20"
-        style={{
-          backgroundImage:
-            "url(https://ml5vpmchq2rr.i.optimole.com/cb:CFS-.b56/w:1024/h:683/q:mauto/f:best/ig:avif/https://iconprivatecollection.com/wp-content/uploads/2020/11/party-rooftop-Villa-Clara-luxury-property-The-Heritage-Collection-Rome-1.jpg)",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-      >
-        <div className="absolute inset-0 bg-black/45" />
-        <div className="relative z-10 mx-auto max-w-6xl px-6 py-24 sm:py-28 md:py-36 text-left text-white">
-          <div className="flex items-center gap-2 text-sm/6 tracking-wide opacity-90 mb-4">
-            <a href="/" className="hover:text-white/80">Home</a>
-            <span>/</span>
-            <span>Villas</span>
-          </div>
-          <h1 className="display max-w-3xl text-5xl sm:text-6xl md:text-7xl font-semibold leading-tight">
-            Find Your Perfect Villa
-          </h1>
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Typography variant="h3" component="h1" sx={{ mb: 4, textAlign: 'center' }}>
+        Luxury Hotels
+      </Typography>
 
-          {/* Search Form */}
-          <div className="mt-10 grid w-full max-w-6xl grid-cols-1 gap-4 md:grid-cols-[1.6fr_1.6fr_1.2fr_auto]">
-            {/* Destination */}
-            <div className="h-16 rounded-xl bg-white text-[#171717] shadow-md border border-black/10 px-5 flex flex-col justify-center">
-              <span className="text-xs font-medium text-black/60">Destination</span>
-              <select
-                className="mt-1 w-full bg-transparent outline-none"
-                value={destination}
-                onChange={(e) => setDestination(e.target.value)}
+      {/* Search and Filters */}
+      <Box sx={{ mb: 4, p: 3, bgcolor: 'background.paper', borderRadius: 2, boxShadow: 1 }}>
+        <Grid container spacing={2} alignItems="center">
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <TextField
+              fullWidth
+              placeholder="Search hotels..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Search />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <TextField
+              fullWidth
+              placeholder="Location"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <LocationOn />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+            <TextField
+              fullWidth
+              placeholder="Guests"
+              value={guests}
+              onChange={(e) => setGuests(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <People />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+            <FormControl fullWidth>
+              <InputLabel>Sort By</InputLabel>
+              <Select
+                value={sortBy}
+                label="Sort By"
+                onChange={(e) => setSortBy(e.target.value)}
               >
-                <option>Thailand</option>
-                <option>New York</option>
-                <option>Paris</option>
-                <option>Dubai</option>
-              </select>
-            </div>
+                <MenuItem value="price">Price</MenuItem>
+                <MenuItem value="rating">Rating</MenuItem>
+                <MenuItem value="reviews">Reviews</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+            <Button variant="contained" fullWidth>
+              Search
+            </Button>
+          </Grid>
+        </Grid>
+      </Box>
 
-            {/* Date range */}
-            <div className="h-16 rounded-xl bg-white text-[#171717] shadow-md border border-black/10 px-5 flex items-center">
-              <div className="flex-1">
-                <div className="text-xs font-medium text-black/60">Check In</div>
-                <input type="date" className="mt-1 bg-transparent outline-none" />
-              </div>
-              <div className="mx-4 hidden h-8 w-px bg-black/10 md:block" />
-              <div className="flex-1">
-                <div className="text-xs font-medium text-black/60">Check Out</div>
-                <input type="date" className="mt-1 bg-transparent outline-none" />
-              </div>
-            </div>
+      {/* Results Count */}
+      <Typography variant="body1" sx={{ mb: 3 }}>
+        Found {sortedHotels.length} hotels
+      </Typography>
+      
+      {/* Hotels Grid */}
+      <Grid container spacing={4}>
+        {sortedHotels.map((hotel) => (
+          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={hotel.id}>
+            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <CardMedia
+                component="img"
+                height="200"
+                image={hotel.image_urls[0] || '/placeholder-hotel.jpg'}
+                alt={hotel.title}
+                sx={{ objectFit: 'cover' }}
+              />
+              <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                <Typography variant="h6" component="h2" sx={{ mb: 1 }}>
+                  {hotel.title}
+                </Typography>
+                
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <LocationOn sx={{ fontSize: 16, color: 'text.secondary', mr: 0.5 }} />
+                  <Typography variant="body2" color="text.secondary">
+                    {hotel.location}
+                  </Typography>
+                </Box>
 
-            {/* Guests */}
-            <div className="h-16 rounded-xl bg-white text-[#171717] shadow-md border border-black/10 px-5 flex flex-col justify-center">
-              <span className="text-xs font-medium text-black/60">Guests and Rooms</span>
-              <select
-                className="mt-1 w-full bg-transparent outline-none"
-                value={guests}
-                onChange={(e) => setGuests(e.target.value)}
-              >
-                <option>2 Guests, 1 Room</option>
-                <option>4 Guests, 2 Room</option>
-                <option>6 Guests, 3 Room</option>
-                <option>8 Guests, 4 Room</option>
-              </select>
-            </div>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <People sx={{ fontSize: 16, color: 'text.secondary', mr: 0.5 }} />
+                    <Typography variant="body2">{hotel.max_guests}</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Bed sx={{ fontSize: 16, color: 'text.secondary', mr: 0.5 }} />
+                    <Typography variant="body2">{hotel.bedrooms}</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Shower sx={{ fontSize: 16, color: 'text.secondary', mr: 0.5 }} />
+                    <Typography variant="body2">{hotel.bathrooms}</Typography>
+                  </Box>
+                </Box>
 
-            {/* Button */}
-            <button className="h-16 rounded-xl bg-[#5a3d35] px-8 text-white font-medium shadow-md whitespace-nowrap">
-              Search Now
-            </button>
-          </div>
-        </div>
-      </section>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <Rating value={hotel.averageRating} precision={0.1} readOnly size="small" />
+                  <Typography variant="body2" sx={{ ml: 1 }}>
+                    ({hotel.reviewCount} reviews)
+                  </Typography>
+                </Box>
 
-      {/* Villas Grid */}
-      <section className="mx-auto max-w-6xl px-6 py-16">
-        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          {villas.map((villa, i) => (
-            <Link key={i} href={`/villas/${villa.slug}`} className="block">
-              <article className="overflow-hidden rounded-2xl border border-black/10 bg-white shadow-sm hover:shadow-md transition-shadow">
-                <div
-                  className="h-64 w-full bg-cover bg-center"
-                  style={{ backgroundImage: `url(${villa.img})` }}
-                />
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="text-xs opacity-70">//{villa.place}</p>
-                    <p className="text-xs text-black/60">{villa.reviews} Reviews</p>
-                  </div>
-                  <h3 className="text-xl font-semibold mb-3">{villa.name}</h3>
-                  <p className="text-sm text-black/70 mb-4 leading-relaxed">{villa.description}</p>
-                  <button className="w-full rounded-full bg-[#111111] px-6 py-3 text-sm text-white font-medium hover:bg-black transition">
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2, flexGrow: 1 }}>
+                  {hotel.description}
+                </Typography>
+
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 'auto' }}>
+                  <Typography variant="h6" color="primary">
+                    ${hotel.price_per_night}/night
+                  </Typography>
+                  <Button variant="contained" size="small">
                     Book Now
-                  </button>
-                </div>
-              </article>
-            </Link>
-          ))}
-        </div>
-      </section>
-    </main>
+                  </Button>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+
+      {sortedHotels.length === 0 && (
+        <Box sx={{ textAlign: 'center', py: 8 }}>
+          <Typography variant="h6" color="text.secondary">
+            No hotels found matching your criteria
+          </Typography>
+          <Button 
+            variant="outlined" 
+            sx={{ mt: 2 }}
+            onClick={() => {
+              setSearchTerm('');
+              setLocation('');
+              setGuests('');
+            }}
+          >
+            Clear Filters
+          </Button>
+        </Box>
+      )}
+    </Container>
   );
 }
